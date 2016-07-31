@@ -12,8 +12,8 @@ object GridSearch {
     Logger.getLogger("org").setLevel(Level.ERROR)
     Logger.getLogger("akka").setLevel(Level.ERROR)
 
-    val trainDataFile = "adult.data"
-    val testDataFile = "adult.test"
+    val trainDataFile = args(0)
+    val testDataFile = args(1)
 
     val conf = new SparkConf().setAppName("Adult_Pipeline_GridSearch").setMaster("local[1]")
     val sc = new SparkContext(conf)
@@ -22,13 +22,13 @@ object GridSearch {
       .format("com.databricks.spark.csv")
       .option("header", "true")
       .option("inferSchema", "true")
-      .load(getClass.getResource(trainDataFile).getPath)
+      .load(trainDataFile)
 
     val testData = sqlContext.read
       .format("com.databricks.spark.csv")
       .option("header", "true")
       .option("inferSchema", "true")
-      .load(getClass.getResource(testDataFile).getPath)
+      .load(testDataFile)
 
     trainData.printSchema()
     val pipeline = new Pipeline().setStages(Array(
