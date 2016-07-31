@@ -57,8 +57,6 @@ object Pipeline {
     val model = pipeline.fit(trainData)
     val predicts = model.transform(testData)
 
-    val correct = predicts.where("label_idx<>predict").count()
-    val total = predicts.count()
-    println(s"Error rate is ${correct.toDouble / total}")
+    println(s"Error rate is ${predicts.where("label_idx<>predict").count().toDouble / predicts.count()}")
   }
 }

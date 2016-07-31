@@ -15,7 +15,7 @@ object Persist {
     val trainDataFile = args(0)
     val testDataFile = args(1)
 
-    val conf = new SparkConf().setAppName("Adult_Pipeline_GridSearch").setMaster("local[1]")
+    val conf = new SparkConf().setAppName("Adult_Pipeline_Persist").setMaster("local[1]")
     val sc = new SparkContext(conf)
     val sqlContext = new SQLContext(sc)
     val trainData = sqlContext.read
@@ -78,8 +78,6 @@ object Persist {
     val loadModel = LogisticRegressionModel.load(modelPath)
 
     val predicts = loadModel.transform(loadFeaturePipeline.transform(testData))
-    val correct = predicts.where("label_idx<>predict").count()
-    val total = predicts.count()
-    println(s"Error rate is ${correct.toDouble / total}")
+    println(s"Error rate is ${predicts.where("label_idx<>predict").count().toDouble / predicts.count()}")
   }
 }
