@@ -1,12 +1,11 @@
+import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.LogisticRegression
-import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
-import org.apache.spark.ml.feature.{OneHotEncoder, SQLTransformer, StringIndexer, VectorAssembler}
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.ml.feature.{OneHotEncoder, StringIndexer, VectorAssembler}
 import org.apache.spark.sql.SQLContext
-import org.apache.log4j.{Level, Logger}
+import org.apache.spark.{SparkConf, SparkContext}
 
-object Adult {
+object Pipeline {
   def main(args : Array[String]) : Unit = {
     Logger.getLogger("org").setLevel(Level.ERROR)
     Logger.getLogger("akka").setLevel(Level.ERROR)
@@ -14,23 +13,22 @@ object Adult {
     val trainDataFile = "adult.data"
     val testDataFile = "adult.test"
 
-    val conf = new SparkConf().setAppName("Adult").setMaster("local[1]")
+    val conf = new SparkConf().setAppName("Adult_Pipeline").setMaster("local[1]")
     val sc = new SparkContext(conf)
     val sqlContext = new SQLContext(sc)
     val trainData = sqlContext.read
       .format("com.databricks.spark.csv")
       .option("header", "true")
       .option("inferSchema", "true")
-      .load(this.getClass.getResource(trainDataFile).getPath)
+      .load(getClass.getResource(trainDataFile).getPath)
 
     val testData = sqlContext.read
       .format("com.databricks.spark.csv")
       .option("header", "true")
       .option("inferSchema", "true")
-      .load(this.getClass.getResource(testDataFile).getPath)
+      .load(getClass.getResource(testDataFile).getPath)
 
     trainData.printSchema()
-
     val pipeline = new Pipeline().setStages(Array(
       new StringIndexer().setInputCol("workclass").setOutputCol("workclass-idx"),
       new OneHotEncoder().setInputCol("workclass-idx").setOutputCol("workclass-encode"),
@@ -53,10 +51,12 @@ object Adult {
         "hours-per-week", "workclass-encode", "education-encode", "marital-status-encode",
         "occupation-encode", "relationship-encode", "race-encode", "native-country-encode")).setOutputCol("feature"),
       new LogisticRegression().setFeaturesCol("feature").setLabelCol("label_idx")
-        .setRawPredictionCol("raw-predict").setPredictionCol("predict")
+        .setPredictionCol("predict").setRawPredictionCol("raw-predict").setMaxIter(100).setRegParam(0.1)
     ))
+
     val model = pipeline.fit(trainData)
     val predicts = model.transform(testData)
+
     val correct = predicts.where("label_idx<>predict").count()
     val total = predicts.count()
     println(s"Error rate is ${correct.toDouble / total}")
